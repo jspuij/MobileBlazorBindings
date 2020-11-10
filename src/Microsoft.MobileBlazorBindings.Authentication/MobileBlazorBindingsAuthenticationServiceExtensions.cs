@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.MobileBlazorBindings.Authentication;
+using Microsoft.MobileBlazorBindings.Authentication.Internal;
 using System;
 using System.Reflection;
 
@@ -28,25 +31,25 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddOptions();
             services.AddAuthorizationCore();
-            //services.TryAddScoped<AuthenticationStateProvider, RemoteAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
-            //services.TryAddScoped(sp =>
-            //{
-            //    return (IRemoteAuthenticationService<TRemoteAuthenticationState>)sp.GetRequiredService<AuthenticationStateProvider>();
-            //});
+            services.TryAddScoped<AuthenticationStateProvider, OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
+            services.TryAddScoped(sp =>
+            {
+                return (IRemoteAuthenticationService<TRemoteAuthenticationState>)sp.GetRequiredService<AuthenticationStateProvider>();
+            });
 
             //services.TryAddTransient<BaseAddressAuthorizationMessageHandler>();
             //services.TryAddTransient<AuthorizationMessageHandler>();
 
-            //services.TryAddScoped(sp =>
-            //{
-            //    return (IAccessTokenProvider)sp.GetRequiredService<AuthenticationStateProvider>();
-            //});
+            services.TryAddScoped(sp =>
+            {
+                return (IAccessTokenProvider)sp.GetRequiredService<AuthenticationStateProvider>();
+            });
 
             //services.TryAddScoped<IRemoteAuthenticationPathsProvider, DefaultRemoteApplicationPathsProvider<TProviderOptions>>();
-            //services.TryAddScoped<IAccessTokenProviderAccessor, AccessTokenProviderAccessor>();
+            services.TryAddScoped<IAccessTokenProviderAccessor, AccessTokenProviderAccessor>();
             //services.TryAddScoped<SignOutSessionStateManager>();
 
-            //services.TryAddScoped<AccountClaimsPrincipalFactory<TAccount>>();
+            services.TryAddScoped<AccountClaimsPrincipalFactory<TAccount>>();
 
             return new RemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount>(services);
         }
