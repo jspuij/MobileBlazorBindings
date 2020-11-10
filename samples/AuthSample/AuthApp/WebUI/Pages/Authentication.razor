@@ -1,0 +1,9 @@
+﻿@page "/authentication/{action}"
+@using Microsoft.MobileBlazorBindings.Authentication
+
+<RemoteAuthenticatorView Action="@Action" />
+
+@code {
+    [Parameter]
+    public string Action { get; set; }
+}

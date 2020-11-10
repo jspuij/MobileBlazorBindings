@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RazorLangVersion>3.0</RazorLangVersion>
+    <NoWarn>;CS1591;CA1303;CA1056</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Options\DefaultApiAuthorizationOptionsConfiguration.cs" />
+    <Compile Remove="Options\DefaultOidcProviderOptionsConfiguration.cs" />
+    <Compile Remove="Services\AuthorizationMessageHandler.cs" />
+    <Compile Remove="Services\BaseAddressAuthorizationMessageHandler.cs" />
+    <Compile Remove="Services\ExpiredTokenException.cs" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="IdentityModel.OidcClient" Version="3.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="3.1.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="3.1.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="3.1.9" />
+  </ItemGroup>
+
+</Project>
