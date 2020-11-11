@@ -9,22 +9,18 @@ namespace Microsoft.MobileBlazorBindings.Authentication
     /// <summary>
     /// Represents a contract for services that perform authentication operations for a Blazor WebAssembly application.
     /// </summary>
-    /// <typeparam name="TRemoteAuthenticationState">The state to be persisted across authentication operations.</typeparam>
-    public interface IRemoteAuthenticationService<TRemoteAuthenticationState>
-        where TRemoteAuthenticationState : RemoteAuthenticationState
+    public interface IAuthenticationService
     {
         /// <summary>
         /// Signs in a user.
         /// </summary>
-        /// <param name="context">The <see cref="RemoteAuthenticationContext{TRemoteAuthenticationState}"/> for authenticating the user.</param>
         /// <returns>The result of the authentication operation.</returns>
-        Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignInAsync();
+        Task SignInAsync();
 
         /// <summary>
         /// Signs out a user.
         /// </summary>
-        /// <param name="context">The <see cref="RemoteAuthenticationContext{TRemoteAuthenticationState}"/> for authenticating the user.</param>
         /// <returns>The result of the authentication operation.</returns>
-        Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignOutAsync();
+        Task SignOutAsync();
     }
 }

@@ -13,16 +13,16 @@ using static IdentityModel.OidcClient.OidcClientOptions;
 namespace Microsoft.MobileBlazorBindings.Authentication
 {
     /// <summary>
-    /// The default implementation for <see cref="IRemoteAuthenticationService{TRemoteAuthenticationState}"/> that uses JS interop to authenticate the user.
+    /// The default implementation for <see cref="IAuthenticationService{TRemoteAuthenticationState}"/> that uses JS interop to authenticate the user.
     /// </summary>
     /// <typeparam name="TRemoteAuthenticationState">The state to preserve across authentication operations.</typeparam>
     /// <typeparam name="TAccount">The type of the <see cref="RemoteUserAccount" />.</typeparam>
     /// <typeparam name="TProviderOptions">The options to be passed down to the underlying JavaScript library handling the authentication operations.</typeparam>
     public abstract class OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions> :
         AuthenticationStateProvider,
-        IRemoteAuthenticationService<TRemoteAuthenticationState>,
+        IAuthenticationService,
         IAccessTokenProvider
-        where TRemoteAuthenticationState : OidcAuthenticationState
+        where TRemoteAuthenticationState : OidcAuthenticationState, new()
         where TProviderOptions : new()
         where TAccount : RemoteUserAccount
     {
@@ -66,24 +66,28 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             throw new System.NotImplementedException();
         }
 
-        public virtual async Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignInAsync()
+        public async Task SignInAsync()
         {
             var client = CreateOidcClientFromOptions();
 
             var internalState = await client.PrepareLoginAsync();
-            return new RemoteAuthenticationResult<TRemoteAuthenticationState>()
+            var raw = await SignInAsync(new TRemoteAuthenticationState()
             {
-                State = (TRemoteAuthenticationState)new OidcAuthenticationState()
-                {
-                    CodeVerifier = internalState.CodeVerifier,
-                    Nonce = internalState.Nonce,
-                    StartUrl = internalState.StartUrl,
-                    State = internalState.State,
-                    RedirectUrl = internalState.RedirectUri,
-                },
-                Status = RemoteAuthenticationStatus.OperationCompleted,
-            };
+                StartUrl = internalState.StartUrl,
+                CodeVerifier = internalState.CodeVerifier,
+                Nonce = internalState.Nonce,
+                RedirectUrl = internalState.RedirectUri,
+                State = internalState.State,
+            });
+
+            var loginResult = await client.ProcessResponseAsync(raw, internalState);
+            _cachedUser = loginResult.User;
+            this.NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
+
+        protected abstract Task<string> SignInAsync(TRemoteAuthenticationState authenticationState);
+
+
 
         protected virtual OidcClient CreateOidcClientFromOptions()
         {
@@ -117,7 +121,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             });
         }
 
-        public virtual Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignOutAsync()
+        public virtual Task SignOutAsync()
         {
             throw new System.NotImplementedException();
         }

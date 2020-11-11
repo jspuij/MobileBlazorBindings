@@ -1,5 +1,6 @@
 @inject AuthenticationStateProvider Provider
-
+@using Microsoft.MobileBlazorBindings.Authentication
+ 
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
@@ -8,7 +9,7 @@
                 <NotAuthorized>
                     @if (!context.User.Identity.IsAuthenticated)
                     {
-                        <RedirectToLogin />
+                        <UnauthenticatedView />
                     }
                     else
                     {

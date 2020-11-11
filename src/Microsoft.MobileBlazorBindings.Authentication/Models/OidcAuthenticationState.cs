@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Microsoft.MobileBlazorBindings.Authentication
 {
-    public class OidcAuthenticationState : RemoteAuthenticationState
+    public class OidcAuthenticationState
     {
         //
         // Summary:

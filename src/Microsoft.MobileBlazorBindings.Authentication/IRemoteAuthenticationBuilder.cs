@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <typeparam name="TRemoteAuthenticationState">The remote authentication state type.</typeparam>
     /// <typeparam name="TAccount">The account type.</typeparam>
     public interface IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount>
-        where TRemoteAuthenticationState : RemoteAuthenticationState
+        where TRemoteAuthenticationState : OidcAuthenticationState
         where TAccount : RemoteUserAccount
     {
         /// <summary>

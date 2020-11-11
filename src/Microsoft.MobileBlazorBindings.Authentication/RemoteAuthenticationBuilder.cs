@@ -7,7 +7,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
 {
     internal class RemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount>
         : IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount>
-        where TRemoteAuthenticationState : RemoteAuthenticationState
+        where TRemoteAuthenticationState : OidcAuthenticationState
         where TAccount : RemoteUserAccount
     {
         public RemoteAuthenticationBuilder(IServiceCollection services) => Services = services;

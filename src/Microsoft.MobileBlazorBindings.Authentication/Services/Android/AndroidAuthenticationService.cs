@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xamarin.Essentials;
@@ -9,14 +10,14 @@ using Xamarin.Essentials;
 namespace Microsoft.MobileBlazorBindings.Authentication
 {
     /// <summary>
-    /// The default implementation for <see cref="IRemoteAuthenticationService{TRemoteAuthenticationState}"/> that uses JS interop to authenticate the user.
+    /// The default implementation for <see cref="IAuthenticationService{TRemoteAuthenticationState}"/> that uses JS interop to authenticate the user.
     /// </summary>
     /// <typeparam name="TRemoteAuthenticationState">The state to preserve across authentication operations.</typeparam>
     /// <typeparam name="TAccount">The type of the <see cref="RemoteUserAccount" />.</typeparam>
     /// <typeparam name="TProviderOptions">The options to be passed down to the underlying JavaScript library handling the authentication operations.</typeparam>
     public class AndroidAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions> :
         OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>
-        where TRemoteAuthenticationState : OidcAuthenticationState
+        where TRemoteAuthenticationState : OidcAuthenticationState, new()
         where TProviderOptions : new()
         where TAccount : RemoteUserAccount
     {
@@ -31,19 +32,10 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         {
         }
 
-        public override async Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignInAsync()
+        protected override async Task<string> SignInAsync(TRemoteAuthenticationState authenticationState)
         {
-            var result = await base.SignInAsync();
-            try
-            {
-                var authenticationResult = await WebAuthenticator.AuthenticateAsync(new Uri(result.State.StartUrl), new Uri(result.State.RedirectUrl));
-            } 
-            catch (Exception ex)
-            {
-
-            }
-
-            return result;
+            var authenticationResult = await WebAuthenticator.AuthenticateAsync(new Uri(authenticationState.StartUrl), new Uri(authenticationState.RedirectUrl));
+            return $"?{string.Join('&',authenticationResult.Properties.Select(x => $"{x.Key}={x.Value}"))}";
         }
     }
 }

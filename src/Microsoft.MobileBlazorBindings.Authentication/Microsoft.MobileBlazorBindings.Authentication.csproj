@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;monoandroid9.0</TargetFrameworks>
     <RazorLangVersion>3.0</RazorLangVersion>
-    <NoWarn>;CS1591;CA1303;CA1056</NoWarn>
+    <NoWarn>;CS1591;CA1303;CA1056;CA2007</NoWarn>
   </PropertyGroup>
 
 
@@ -25,10 +25,6 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'monoandroid9.0'">
     <Compile Include="**\*.android.cs" />
     <AndroidResource Include="Resources\**\*.xml" SubType="Designer" Generator="MSBuild:UpdateAndroidResources" Condition="'$(TargetFramework)' == 'monoandroid9.0'" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="RemoteAuthenticatorView.cs" />
   </ItemGroup>
 
   <ItemGroup>
