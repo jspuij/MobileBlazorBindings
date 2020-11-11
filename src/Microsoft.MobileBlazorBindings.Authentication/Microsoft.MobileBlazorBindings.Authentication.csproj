@@ -1,18 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="MSBuild.Sdk.Extras">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.1;monoandroid9.0</TargetFrameworks>
     <RazorLangVersion>3.0</RazorLangVersion>
     <NoWarn>;CS1591;CA1303;CA1056</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Options\DefaultApiAuthorizationOptionsConfiguration.cs" />
-    <Compile Remove="Options\DefaultOidcProviderOptionsConfiguration.cs" />
-    <Compile Remove="Services\AuthorizationMessageHandler.cs" />
-    <Compile Remove="Services\BaseAddressAuthorizationMessageHandler.cs" />
-    <Compile Remove="Services\ExpiredTokenException.cs" />
-  </ItemGroup>
 
 
   <ItemGroup>
@@ -20,6 +12,26 @@
     <PackageReference Include="Microsoft.AspNetCore.Components" Version="3.1.9" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="3.1.9" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="3.1.9" />
+    <PackageReference Include="Xamarin.Forms" Version="4.8.0.1451" />
+    <PackageReference Include="Xamarin.Essentials" Version="1.5.3.2" />
+    <PackageReference Include="Xamarin.Forms" Version="4.8.0.1451" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Remove="**\*.android.cs" />
+    <None Include="**\*.android.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'monoandroid9.0'">
+    <Compile Include="**\*.android.cs" />
+    <AndroidResource Include="Resources\**\*.xml" SubType="Designer" Generator="MSBuild:UpdateAndroidResources" Condition="'$(TargetFramework)' == 'monoandroid9.0'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="RemoteAuthenticatorView.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\Apple\" />
+  </ItemGroup>
 </Project>

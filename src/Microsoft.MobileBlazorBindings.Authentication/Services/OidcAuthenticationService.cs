@@ -1,11 +1,14 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using IdentityModel.Client;
+using IdentityModel.OidcClient;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using static IdentityModel.OidcClient.OidcClientOptions;
 
 namespace Microsoft.MobileBlazorBindings.Authentication
 {
@@ -15,11 +18,11 @@ namespace Microsoft.MobileBlazorBindings.Authentication
     /// <typeparam name="TRemoteAuthenticationState">The state to preserve across authentication operations.</typeparam>
     /// <typeparam name="TAccount">The type of the <see cref="RemoteUserAccount" />.</typeparam>
     /// <typeparam name="TProviderOptions">The options to be passed down to the underlying JavaScript library handling the authentication operations.</typeparam>
-    public class OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions> :
+    public abstract class OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions> :
         AuthenticationStateProvider,
         IRemoteAuthenticationService<TRemoteAuthenticationState>,
         IAccessTokenProvider
-        where TRemoteAuthenticationState : RemoteAuthenticationState
+        where TRemoteAuthenticationState : OidcAuthenticationState
         where TProviderOptions : new()
         where TAccount : RemoteUserAccount
     {
@@ -53,42 +56,107 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             Options = options.Value;
         }
 
-        public Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> CompleteSignInAsync(RemoteAuthenticationContext<TRemoteAuthenticationState> context)
+        public virtual ValueTask<AccessTokenResult> RequestAccessToken()
         {
             throw new System.NotImplementedException();
         }
 
-        public Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> CompleteSignOutAsync(RemoteAuthenticationContext<TRemoteAuthenticationState> context)
+        public virtual ValueTask<AccessTokenResult> RequestAccessToken(AccessTokenRequestOptions options)
         {
             throw new System.NotImplementedException();
         }
 
-        public ValueTask<AccessTokenResult> RequestAccessToken()
+        public virtual async Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignInAsync()
         {
-            throw new System.NotImplementedException();
+            var client = CreateOidcClientFromOptions();
+
+            var internalState = await client.PrepareLoginAsync();
+            return new RemoteAuthenticationResult<TRemoteAuthenticationState>()
+            {
+                State = (TRemoteAuthenticationState)new OidcAuthenticationState()
+                {
+                    CodeVerifier = internalState.CodeVerifier,
+                    Nonce = internalState.Nonce,
+                    StartUrl = internalState.StartUrl,
+                    State = internalState.State,
+                    RedirectUrl = internalState.RedirectUri,
+                },
+                Status = RemoteAuthenticationStatus.OperationCompleted,
+            };
         }
 
-        public ValueTask<AccessTokenResult> RequestAccessToken(AccessTokenRequestOptions options)
+        protected virtual OidcClient CreateOidcClientFromOptions()
         {
-            throw new System.NotImplementedException();
+            OidcProviderOptions oidcProviderOptions = null;
+
+            if (this.Options.ProviderOptions is OidcProviderOptions)
+            {
+                oidcProviderOptions = this.Options.ProviderOptions as OidcProviderOptions;
+            } 
+            else if (this.Options.ProviderOptions is ApiAuthorizationProviderOptions apiAuthorizationProviderOptions)
+            {
+                // TODO: Implement configuration fetch from endpoint.
+            } else
+            {
+                throw new InvalidOperationException($"{typeof(TProviderOptions)} is not a known options type.");
+            }
+
+            if (!Enum.TryParse<AuthorizeResponseMode>(oidcProviderOptions.ResponseMode, out var responseMode))
+            {
+                throw new OptionsValidationException("ResponseMode", typeof(OidcProviderOptions), new string[] { $"{oidcProviderOptions.ResponseMode} is not a valid response mode." });
+            }
+
+            return new OidcClient(new OidcClientOptions()
+            {
+                Authority = oidcProviderOptions.Authority,
+                ClientId = oidcProviderOptions.ClientId,
+                PostLogoutRedirectUri = oidcProviderOptions.PostLogoutRedirectUri,
+                RedirectUri = oidcProviderOptions.RedirectUri,
+                ResponseMode = responseMode,
+                Scope = string.Join(' ', oidcProviderOptions.DefaultScopes),
+            });
         }
 
-        public Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignInAsync(RemoteAuthenticationContext<TRemoteAuthenticationState> context)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignOutAsync(RemoteAuthenticationContext<TRemoteAuthenticationState> context)
+        public virtual Task<RemoteAuthenticationResult<TRemoteAuthenticationState>> SignOutAsync()
         {
             throw new System.NotImplementedException();
         }
 
         /// <inheritdoc />
         public override async Task<AuthenticationState> GetAuthenticationStateAsync() => new AuthenticationState(await GetUser(useCache: true));
-
         private async Task<ClaimsPrincipal> GetUser(bool useCache = false)
         {
             return _cachedUser;
+
+            var now = DateTimeOffset.Now;
+            if (useCache && now < _userLastCheck + _userCacheRefreshInterval)
+            {
+                return _cachedUser;
+            }
+
+            _cachedUser = await GetAuthenticatedUser();
+            _userLastCheck = now;
+
+            return _cachedUser;
         }
+
+        /// <summary>
+        /// Gets the current authenticated used using JavaScript interop.
+        /// </summary>
+        /// <returns>A <see cref="Task{ClaimsPrincipal}"/>that will return the current authenticated user when completes.</returns>
+        protected internal virtual async ValueTask<ClaimsPrincipal> GetAuthenticatedUser()
+        {
+            throw new NotImplementedException();
+
+            //var account = await JsRuntime.InvokeAsync<TAccount>("AuthenticationService.getUser");
+            //var user = await AccountClaimsPrincipalFactory.CreateUserAsync(account, Options.UserOptions);
+
+            //return user;
+        }
+
+        private async ValueTask EnsureAuthService()
+        {
+        }
+
     }
 }

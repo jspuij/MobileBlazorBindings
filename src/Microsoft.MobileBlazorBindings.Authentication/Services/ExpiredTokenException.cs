@@ -14,7 +14,6 @@ namespace Microsoft.MobileBlazorBindings.Authentication
     /// </summary>
     public class AccessTokenNotAvailableException : Exception
     {
-        private readonly NavigationManager _navigation;
         private readonly AccessTokenResult _tokenResult;
 
         /// <summary>
@@ -24,19 +23,17 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// <param name="tokenResult">The <see cref="AccessTokenResult"/>.</param>
         /// <param name="scopes">The scopes.</param>
         public AccessTokenNotAvailableException(
-            NavigationManager navigation,
             AccessTokenResult tokenResult,
             IEnumerable<string> scopes)
             : base(message: "Unable to provision an access token for the requested scopes: " +
                   scopes != null ? $"'{string.Join(", ", scopes ?? Array.Empty<string>())}'" : "(default scopes)")
         {
             _tokenResult = tokenResult;
-            _navigation = navigation;
         }
 
         /// <summary>
         /// Navigates to <see cref="AccessTokenResult.RedirectUrl"/> to allow refreshing the access token.
         /// </summary>
-        public void Redirect() => _navigation.NavigateTo(_tokenResult.RedirectUrl);
+        public void Redirect() => throw new NotImplementedException();
     }
 }

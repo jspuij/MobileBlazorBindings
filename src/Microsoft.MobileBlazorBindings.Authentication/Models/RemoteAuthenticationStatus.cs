@@ -9,11 +9,6 @@ namespace Microsoft.MobileBlazorBindings.Authentication
     public enum RemoteAuthenticationStatus
     {
         /// <summary>
-        /// The application is going to be redirected.
-        /// </summary>
-        Redirect,
-
-        /// <summary>
         /// The authentication operation completed successfully.
         /// </summary>
         Success,

@@ -19,7 +19,6 @@ namespace Microsoft.MobileBlazorBindings.Authentication
     public class AuthorizationMessageHandler : DelegatingHandler
     {
         private readonly IAccessTokenProvider _provider;
-        private readonly NavigationManager _navigation;
         private AccessToken _lastToken;
         private AuthenticationHeaderValue _cachedHeader;
         private Uri[] _authorizedUris;
@@ -29,13 +28,10 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// Initializes a new instance of <see cref="AuthorizationMessageHandler"/>.
         /// </summary>
         /// <param name="provider">The <see cref="IAccessTokenProvider"/> to use for provisioning tokens.</param>
-        /// <param name="navigation">The <see cref="NavigationManager"/> to use for performing redirections.</param>
         public AuthorizationMessageHandler(
-            IAccessTokenProvider provider,
-            NavigationManager navigation)
+            IAccessTokenProvider provider)
         {
             _provider = provider;
-            _navigation = navigation;
         }
 
         /// <inheritdoc />
@@ -63,7 +59,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
                     }
                     else
                     {
-                        throw new AccessTokenNotAvailableException(_navigation, tokenResult, _tokenOptions?.Scopes);
+                        throw new AccessTokenNotAvailableException(tokenResult, _tokenOptions?.Scopes);
                     }
                 }
 

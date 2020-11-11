@@ -3,10 +3,12 @@
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.MobileBlazorBindings.Authentication;
 using Microsoft.MobileBlazorBindings.Authentication.Internal;
 using System;
 using System.Reflection;
+using Xamarin.Forms;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -25,13 +27,25 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount> AddRemoteAuthentication<TRemoteAuthenticationState, TAccount, TProviderOptions>(this IServiceCollection services)
-            where TRemoteAuthenticationState : RemoteAuthenticationState
+            where TRemoteAuthenticationState : OidcAuthenticationState
             where TAccount : RemoteUserAccount
             where TProviderOptions : class, new()
         {
             services.AddOptions();
             services.AddAuthorizationCore();
-            services.TryAddScoped<AuthenticationStateProvider, OidcAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
+
+            switch (Device.RuntimePlatform)
+            {
+                case Device.Android:
+                    services.TryAddScoped<AuthenticationStateProvider, AndroidAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
+                    break;
+                case Device.WPF:
+                    services.TryAddScoped<AuthenticationStateProvider, WindowsAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
+                    break;
+                default:
+                    throw new PlatformNotSupportedException($"Platform {Device.RuntimePlatform} is not supported by {ThisAssembly.AssemblyName}");
+            }
+
             services.TryAddScoped(sp =>
             {
                 return (IRemoteAuthenticationService<TRemoteAuthenticationState>)sp.GetRequiredService<AuthenticationStateProvider>();
@@ -45,9 +59,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 return (IAccessTokenProvider)sp.GetRequiredService<AuthenticationStateProvider>();
             });
 
-            //services.TryAddScoped<IRemoteAuthenticationPathsProvider, DefaultRemoteApplicationPathsProvider<TProviderOptions>>();
+            services.TryAddScoped<IRemoteAuthenticationPathsProvider, DefaultRemoteApplicationPathsProvider<TProviderOptions>>();
             services.TryAddScoped<IAccessTokenProviderAccessor, AccessTokenProviderAccessor>();
-            //services.TryAddScoped<SignOutSessionStateManager>();
+            services.TryAddScoped<SignOutSessionStateManager>();
 
             services.TryAddScoped<AccountClaimsPrincipalFactory<TAccount>>();
 
@@ -64,7 +78,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{TProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount> AddRemoteAuthentication<TRemoteAuthenticationState, TAccount, TProviderOptions>(this IServiceCollection services, Action<RemoteAuthenticationOptions<TProviderOptions>> configure)
-            where TRemoteAuthenticationState : RemoteAuthenticationState
+            where TRemoteAuthenticationState : OidcAuthenticationState
             where TAccount : RemoteUserAccount
             where TProviderOptions : class, new()
         {
@@ -83,9 +97,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{TProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
-        public static IRemoteAuthenticationBuilder<RemoteAuthenticationState, RemoteUserAccount> AddOidcAuthentication(this IServiceCollection services, Action<RemoteAuthenticationOptions<OidcProviderOptions>> configure)
+        public static IRemoteAuthenticationBuilder<OidcAuthenticationState, RemoteUserAccount> AddOidcAuthentication(this IServiceCollection services, Action<RemoteAuthenticationOptions<OidcProviderOptions>> configure)
         {
-            return AddOidcAuthentication<RemoteAuthenticationState>(services, configure);
+            return AddOidcAuthentication<OidcAuthenticationState>(services, configure);
         }
 
         /// <summary>
@@ -96,7 +110,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{TProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, RemoteUserAccount> AddOidcAuthentication<TRemoteAuthenticationState>(this IServiceCollection services, Action<RemoteAuthenticationOptions<OidcProviderOptions>> configure)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
         {
             return AddOidcAuthentication<TRemoteAuthenticationState, RemoteUserAccount>(services, configure);
         }
@@ -110,10 +124,11 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{TProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount> AddOidcAuthentication<TRemoteAuthenticationState, TAccount>(this IServiceCollection services, Action<RemoteAuthenticationOptions<OidcProviderOptions>> configure)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
             where TAccount : RemoteUserAccount
         {
-            //services.TryAddEnumerable(ServiceDescriptor.Scoped<IPostConfigureOptions<RemoteAuthenticationOptions<OidcProviderOptions>>, DefaultOidcOptionsConfiguration>());
+            // todo: add scheme handling based on logic.
+            services.TryAddEnumerable(ServiceDescriptor.Scoped<IPostConfigureOptions<RemoteAuthenticationOptions<OidcProviderOptions>>, DefaultOidcOptionsConfiguration>(sp => new DefaultOidcOptionsConfiguration("app://0.0.0.0/")));
 
             return AddRemoteAuthentication<TRemoteAuthenticationState, TAccount, OidcProviderOptions>(services, configure);
         }
@@ -123,9 +138,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
-        public static IRemoteAuthenticationBuilder<RemoteAuthenticationState, RemoteUserAccount> AddApiAuthorization(this IServiceCollection services)
+        public static IRemoteAuthenticationBuilder<OidcAuthenticationState, RemoteUserAccount> AddApiAuthorization(this IServiceCollection services)
         {
-            return AddApiauthorizationCore<RemoteAuthenticationState, RemoteUserAccount>(services, configure: null, Assembly.GetCallingAssembly().GetName().Name);
+            return AddApiauthorizationCore<OidcAuthenticationState, RemoteUserAccount>(services, configure: null, Assembly.GetCallingAssembly().GetName().Name);
         }
 
         /// <summary>
@@ -135,7 +150,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, RemoteUserAccount> AddApiAuthorization<TRemoteAuthenticationState>(this IServiceCollection services)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
         {
             return AddApiauthorizationCore<TRemoteAuthenticationState, RemoteUserAccount>(services, configure: null, Assembly.GetCallingAssembly().GetName().Name);
         }
@@ -148,7 +163,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount> AddApiAuthorization<TRemoteAuthenticationState, TAccount>(this IServiceCollection services)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
             where TAccount : RemoteUserAccount
         {
             return AddApiauthorizationCore<TRemoteAuthenticationState, TAccount>(services, configure: null, Assembly.GetCallingAssembly().GetName().Name);
@@ -160,9 +175,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{ApiAuthorizationProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
-        public static IRemoteAuthenticationBuilder<RemoteAuthenticationState, RemoteUserAccount> AddApiAuthorization(this IServiceCollection services, Action<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> configure)
+        public static IRemoteAuthenticationBuilder<OidcAuthenticationState, RemoteUserAccount> AddApiAuthorization(this IServiceCollection services, Action<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> configure)
         {
-            return AddApiauthorizationCore<RemoteAuthenticationState, RemoteUserAccount>(services, configure, Assembly.GetCallingAssembly().GetName().Name);
+            return AddApiauthorizationCore<OidcAuthenticationState, RemoteUserAccount>(services, configure, Assembly.GetCallingAssembly().GetName().Name);
         }
 
         /// <summary>
@@ -173,7 +188,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{ApiAuthorizationProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, RemoteUserAccount> AddApiAuthorization<TRemoteAuthenticationState>(this IServiceCollection services, Action<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> configure)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
         {
             return AddApiauthorizationCore<TRemoteAuthenticationState, RemoteUserAccount>(services, configure, Assembly.GetCallingAssembly().GetName().Name);
         }
@@ -187,7 +202,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="configure">An action that will configure the <see cref="RemoteAuthenticationOptions{ApiAuthorizationProviderOptions}"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> where the services were registered.</returns>
         public static IRemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount> AddApiAuthorization<TRemoteAuthenticationState, TAccount>(this IServiceCollection services, Action<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> configure)
-            where TRemoteAuthenticationState : RemoteAuthenticationState, new()
+            where TRemoteAuthenticationState : OidcAuthenticationState, new()
             where TAccount : RemoteUserAccount
         {
             return AddApiauthorizationCore<TRemoteAuthenticationState, TAccount>(services, configure, Assembly.GetCallingAssembly().GetName().Name);
@@ -197,7 +212,7 @@ namespace Microsoft.Extensions.DependencyInjection
             IServiceCollection services,
             Action<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> configure,
             string inferredClientId)
-            where TRemoteAuthenticationState : RemoteAuthenticationState
+            where TRemoteAuthenticationState : OidcAuthenticationState
             where TAccount : RemoteUserAccount
         {
             //services.TryAddEnumerable(
