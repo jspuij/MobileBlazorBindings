@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;monoandroid9.0;xamarin.ios10</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netcoreapp3.1;monoandroid9.0;xamarin.ios10;xamarin.mac20</TargetFrameworks>
     <RazorLangVersion>3.0</RazorLangVersion>
     <NoWarn>;CS1591;CA1303;CA1056;CA2007</NoWarn>
   </PropertyGroup>
@@ -9,20 +9,23 @@
 
   <ItemGroup>
     <PackageReference Include="IdentityModel.OidcClient" Version="3.1.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="3.1.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="3.1.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="3.1.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="3.1.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="3.1.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="3.1.5" />
     <PackageReference Include="Xamarin.Forms" Version="4.8.0.1451" />
-    <PackageReference Include="Xamarin.Essentials" Version="1.5.3.2" />
+    <PackageReference Include="Xamarin.Essentials" Version="1.6.0-pre3" />
     <PackageReference Include="Xamarin.Forms" Version="4.8.0.1451" />
-  </ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.4" IncludeAssets="None" Condition="'$(TargetFramework)' == 'xamarin.mac20'" />
+   </ItemGroup>
   
   <ItemGroup>
     <Compile Remove="**\*.android.cs" />
     <None Include="**\*.android.cs" />
+    <Compile Remove="**\*.macos.cs" />
+    <None Include="**\*.macos.cs" /> 
     <Compile Remove="**\*.ios.cs" />
-    <None Include="**\*.ios.cs" /> 
-  </ItemGroup>
+    <None Include="**\*.ios.cs" />   
+    </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'monoandroid9.0'">
     <Compile Include="**\*.android.cs" />
@@ -31,13 +34,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'xamarin.ios10'">
     <Compile Include="**\*.ios.cs" />
    </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\Apple\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Condition=" '$(EnableDefaultCompileItems)' == 'true' " Update="Services\Apple\AndroidAuthenticationService.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
+     <ItemGroup Condition="'$(TargetFramework)' == 'xamarin.mac20'">
+    <Compile Include="**\*.macos.cs" />
+   </ItemGroup>
 </Project>

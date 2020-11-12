@@ -94,13 +94,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Xamarin.Forms" Version="4.8.0.1451" />
-    <PackageReference Include="Xamarin.Essentials" Version="1.5.3.2" />
+    <PackageReference Include="Xamarin.Essentials" Version="1.6.0-pre3" />
     <PackageReference Include="System.Memory" Version="4.5.4" IncludeAssets="None" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Microsoft.MobileBlazorBindings.Authentication\Microsoft.MobileBlazorBindings.Authentication.csproj">
-      <Project>{66935c22-8169-48ba-96c6-b9925826e2b7}</Project>
+      <Project>{EA6DB63E-F9EA-4CFE-9D1F-259D837B9F63}</Project>
       <Name>Microsoft.MobileBlazorBindings.Authentication</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\src\Microsoft.MobileBlazorBindings.WebView.macOS\Microsoft.MobileBlazorBindings.WebView.macOS.csproj">
@@ -108,7 +108,7 @@
       <Name>Microsoft.MobileBlazorBindings.WebView.macOS</Name>
     </ProjectReference>
     <ProjectReference Include="..\AuthApp\AuthApp.csproj">
-      <Project>{de71f6d4-9950-472a-90b2-f4074810ae6d}</Project>
+      <Project>{031CEFCC-3DDD-43C6-97B4-864C70DFC732}</Project>
       <Name>AuthApp</Name>
     </ProjectReference>
   </ItemGroup>

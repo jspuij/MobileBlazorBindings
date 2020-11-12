@@ -37,7 +37,8 @@ namespace Microsoft.Extensions.DependencyInjection
             switch (Device.RuntimePlatform)
             {
                 case Device.iOS:
-                    services.TryAddScoped<AuthenticationStateProvider, IosAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
+                case Device.macOS:
+                    services.TryAddScoped<AuthenticationStateProvider, AppleAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
                     break;
                 case Device.Android:
                     services.TryAddScoped<AuthenticationStateProvider, AndroidAuthenticationService<TRemoteAuthenticationState, TAccount, TProviderOptions>>();
