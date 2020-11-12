@@ -28,7 +28,6 @@ namespace AuthApp
                         options.ProviderOptions.ClientId = "interactive.public";
                         options.ProviderOptions.DefaultScopes.Add("openid");
                         options.ProviderOptions.DefaultScopes.Add("profile");
-                        options.ProviderOptions.PostLogoutRedirectUri = "/";
                         options.ProviderOptions.ResponseType = "code";
                     });
                 })

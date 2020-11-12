@@ -37,9 +37,8 @@ namespace HybridApp.Droid
 
         protected override void OnResume()
         {
-            base.OnResume();
-
             Xamarin.Essentials.Platform.OnResume();
+            base.OnResume();
         }
     }
 }

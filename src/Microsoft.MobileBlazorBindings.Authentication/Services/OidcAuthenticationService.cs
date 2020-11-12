@@ -87,14 +87,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             await EnsureAuthService();
 
             var internalState = await Client.PrepareLoginAsync();
-            var raw = await StartSecureNavigation(new TRemoteAuthenticationState()
-            {
-                StartUrl = internalState.StartUrl,
-                CodeVerifier = internalState.CodeVerifier,
-                Nonce = internalState.Nonce,
-                RedirectUrl = internalState.RedirectUri,
-                State = internalState.State,
-            });
+            var raw = await StartSecureNavigation(new Uri(internalState.StartUrl), new Uri(internalState.RedirectUri));
             var loginResult = await Client.ProcessResponseAsync(raw, internalState);
 
             if (loginResult.AccessToken != null)
@@ -111,7 +104,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             UpdateUser(getUserTask);
         }
 
-        protected abstract Task<string> StartSecureNavigation(TRemoteAuthenticationState authenticationState);
+        protected abstract Task<string> StartSecureNavigation(Uri startUrl, Uri redirectUrl);
 
 
         protected virtual OidcClient CreateOidcClientFromOptions()
@@ -147,9 +140,29 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             });
         }
 
-        public virtual Task SignOut()
+        public async virtual Task SignOut()
         {
-            throw new System.NotImplementedException();
+            await EnsureAuthService();
+            string idTokenString = null;
+            if (await _tokenCache.TryGet("id_token", out var idToken))
+            {
+                idTokenString = idToken.RawData;
+            }
+
+            var logoutUrl = await Client.PrepareLogoutAsync(new LogoutRequest()
+            {
+                IdTokenHint = idTokenString,
+            });
+            var raw = await StartSecureNavigation(new Uri(logoutUrl), new Uri(Client.Options.PostLogoutRedirectUri));
+
+            if (raw == "?")
+            {
+                await _tokenCache.Clear();
+                _userLastCheck = DateTimeOffset.FromUnixTimeSeconds(0);
+                var getUserTask = GetUser();
+                await getUserTask;
+                UpdateUser(getUserTask);
+            }
         }
 
         /// <inheritdoc />

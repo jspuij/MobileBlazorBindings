@@ -18,8 +18,7 @@
 @code {
     private async Task SignOut(MouseEventArgs args)
     {
-        //        await SignOutManager.SetSignOutState();
-        Navigation.NavigateTo("authentication/logout");
+        await AuthenticationService.SignOut();
     }
 
     private async Task SignIn(MouseEventArgs args)

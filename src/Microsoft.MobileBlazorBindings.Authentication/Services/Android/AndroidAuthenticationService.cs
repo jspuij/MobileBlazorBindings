@@ -34,9 +34,9 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         {
         }
 
-        protected override async Task<string> StartSecureNavigation(TRemoteAuthenticationState authenticationState)
+        protected override async Task<string> StartSecureNavigation(Uri startUrl, Uri redirectUrl)
         {
-            var authenticationResult = await WebAuthenticator.AuthenticateAsync(new Uri(authenticationState.StartUrl), new Uri(authenticationState.RedirectUrl));
+            var authenticationResult = await WebAuthenticator.AuthenticateAsync(startUrl, redirectUrl);
             return $"?{string.Join('&',authenticationResult.Properties.Select(x => $"{x.Key}={x.Value}"))}";
         }
     }

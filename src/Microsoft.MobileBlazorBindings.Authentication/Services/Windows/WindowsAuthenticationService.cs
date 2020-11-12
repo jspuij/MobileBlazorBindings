@@ -32,7 +32,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         {
         }
 
-        protected override async Task<string> StartSecureNavigation(TRemoteAuthenticationState authenticationState)
+        protected override async Task<string> StartSecureNavigation(Uri startUrl, Uri redirectUrl)
         {
             return string.Empty;
         }

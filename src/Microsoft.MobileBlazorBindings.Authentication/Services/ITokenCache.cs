@@ -27,5 +27,11 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// <param name="token">The token.</param>
         /// <returns></returns>
         Task<bool> TryGet(string key, out JwtSecurityToken token);
+
+        /// <summary>
+        /// Clears the token cache.
+        /// </summary>
+        /// <returns>A taks representing the asynchronous operation.</returns>
+        Task Clear();
     }
 }

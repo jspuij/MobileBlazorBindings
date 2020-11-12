@@ -24,6 +24,13 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         }
 
         /// <inheritdoc />
+        public Task Clear()
+        {
+            tokens.Clear();
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc />
         public Task<bool> TryGet(string key, out JwtSecurityToken token)
         {
             token = null;
