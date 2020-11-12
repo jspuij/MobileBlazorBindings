@@ -61,6 +61,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.TryAddScoped<IRemoteAuthenticationPathsProvider, DefaultRemoteApplicationPathsProvider<TProviderOptions>>();
             services.TryAddScoped<IAccessTokenProviderAccessor, AccessTokenProviderAccessor>();
+            services.TryAddScoped<ITokenCache, MemoryTokenCache>();
             services.TryAddScoped<SignOutSessionStateManager>();
 
             services.TryAddScoped<AccountClaimsPrincipalFactory<TAccount>>();

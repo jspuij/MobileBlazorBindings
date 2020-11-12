@@ -23,14 +23,16 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// Initializes a new instance.
         /// </summary>
         /// <param name="options">The options to be passed down to the underlying JavaScript library handling the authentication operations.</param>
+        /// <param name="tokenCache">The token cache to use to store tokens.</param>
         /// <param name="accountClaimsPrincipalFactory">The <see cref="AccountClaimsPrincipalFactory{TAccount}"/> used to generate the <see cref="ClaimsPrincipal"/> for the user.</param>
         public WindowsAuthenticationService(
             IOptionsSnapshot<RemoteAuthenticationOptions<TProviderOptions>> options,
-            AccountClaimsPrincipalFactory<TAccount> accountClaimsPrincipalFactory) : base (options, accountClaimsPrincipalFactory)
+            ITokenCache tokenCache,
+            AccountClaimsPrincipalFactory<TAccount> accountClaimsPrincipalFactory) : base (options, tokenCache, accountClaimsPrincipalFactory)
         {
         }
 
-        protected override async Task<string> SignInAsync(TRemoteAuthenticationState authenticationState)
+        protected override async Task<string> StartSecureNavigation(TRemoteAuthenticationState authenticationState)
         {
             return string.Empty;
         }

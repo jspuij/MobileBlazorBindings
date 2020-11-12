@@ -29,7 +29,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
                 return;
             }
 
-            await AuthenticationService.SignInAsync();
+            await AuthenticationService.SignIn();
         }
     }
 }

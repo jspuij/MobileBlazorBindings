@@ -15,12 +15,12 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// Signs in a user.
         /// </summary>
         /// <returns>The result of the authentication operation.</returns>
-        Task SignInAsync();
+        Task SignIn();
 
         /// <summary>
         /// Signs out a user.
         /// </summary>
         /// <returns>The result of the authentication operation.</returns>
-        Task SignOutAsync();
+        Task SignOut();
     }
 }

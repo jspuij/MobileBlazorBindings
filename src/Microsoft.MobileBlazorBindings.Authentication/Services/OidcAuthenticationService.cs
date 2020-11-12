@@ -9,6 +9,9 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using static IdentityModel.OidcClient.OidcClientOptions;
+using System.Net.Http;
+using System.Text.Json;
+using System.Linq;
 
 namespace Microsoft.MobileBlazorBindings.Authentication
 {
@@ -26,6 +29,11 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         where TProviderOptions : new()
         where TAccount : RemoteUserAccount
     {
+        private static readonly string[] ProtocolClaims = new string[] { "nonce", "at_hash", "iat", "nbf", "exp", "aud", "iss", "c_hash" };
+        private readonly ITokenCache _tokenCache;
+
+        // We cache the user claims for 60 seconds to avoid spamming the server.
+        // But we also want additional claims that are added to appear in the app fairly quickly.
         private static readonly TimeSpan _userCacheRefreshInterval = TimeSpan.FromSeconds(60);
         private bool _initialized = false;
 
@@ -44,14 +52,22 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         protected RemoteAuthenticationOptions<TProviderOptions> Options { get; }
 
         /// <summary>
+        /// The Oidc Client that is used for all requests.
+        /// </summary>
+        protected OidcClient Client { get; private set; }
+
+        /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="options">The options to be passed down to the underlying JavaScript library handling the authentication operations.</param>
+        /// <param name="tokenCache">The token cache to use to store tokens.</param>
         /// <param name="accountClaimsPrincipalFactory">The <see cref="AccountClaimsPrincipalFactory{TAccount}"/> used to generate the <see cref="ClaimsPrincipal"/> for the user.</param>
         public OidcAuthenticationService(
             IOptionsSnapshot<RemoteAuthenticationOptions<TProviderOptions>> options,
+            ITokenCache tokenCache,
             AccountClaimsPrincipalFactory<TAccount> accountClaimsPrincipalFactory)
         {
+            _tokenCache = tokenCache;
             AccountClaimsPrincipalFactory = accountClaimsPrincipalFactory;
             Options = options.Value;
         }
@@ -66,12 +82,12 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             throw new System.NotImplementedException();
         }
 
-        public async Task SignInAsync()
+        public async Task SignIn()
         {
-            var client = CreateOidcClientFromOptions();
+            await EnsureAuthService();
 
-            var internalState = await client.PrepareLoginAsync();
-            var raw = await SignInAsync(new TRemoteAuthenticationState()
+            var internalState = await Client.PrepareLoginAsync();
+            var raw = await StartSecureNavigation(new TRemoteAuthenticationState()
             {
                 StartUrl = internalState.StartUrl,
                 CodeVerifier = internalState.CodeVerifier,
@@ -79,14 +95,23 @@ namespace Microsoft.MobileBlazorBindings.Authentication
                 RedirectUrl = internalState.RedirectUri,
                 State = internalState.State,
             });
+            var loginResult = await Client.ProcessResponseAsync(raw, internalState);
 
-            var loginResult = await client.ProcessResponseAsync(raw, internalState);
-            _cachedUser = loginResult.User;
-            this.NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            if (loginResult.AccessToken != null)
+            {
+                await this._tokenCache.Add("access_token", new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(loginResult.AccessToken));
+            }
+            if (loginResult.IdentityToken != null)
+            {
+                await this._tokenCache.Add("id_token", new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(loginResult.IdentityToken));
+            }
+
+            var getUserTask = GetUser();
+            await getUserTask;
+            UpdateUser(getUserTask);
         }
 
-        protected abstract Task<string> SignInAsync(TRemoteAuthenticationState authenticationState);
-
+        protected abstract Task<string> StartSecureNavigation(TRemoteAuthenticationState authenticationState);
 
 
         protected virtual OidcClient CreateOidcClientFromOptions()
@@ -117,21 +142,21 @@ namespace Microsoft.MobileBlazorBindings.Authentication
                 PostLogoutRedirectUri = oidcProviderOptions.PostLogoutRedirectUri,
                 RedirectUri = oidcProviderOptions.RedirectUri,
                 ResponseMode = responseMode,
+                LoadProfile = false,
                 Scope = string.Join(' ', oidcProviderOptions.DefaultScopes),
             });
         }
 
-        public virtual Task SignOutAsync()
+        public virtual Task SignOut()
         {
             throw new System.NotImplementedException();
         }
 
         /// <inheritdoc />
         public override async Task<AuthenticationState> GetAuthenticationStateAsync() => new AuthenticationState(await GetUser(useCache: true));
+
         private async Task<ClaimsPrincipal> GetUser(bool useCache = false)
         {
-            return _cachedUser;
-
             var now = DateTimeOffset.Now;
             if (useCache && now < _userLastCheck + _userCacheRefreshInterval)
             {
@@ -150,17 +175,81 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         /// <returns>A <see cref="Task{ClaimsPrincipal}"/>that will return the current authenticated user when completes.</returns>
         protected internal virtual async ValueTask<ClaimsPrincipal> GetAuthenticatedUser()
         {
-            throw new NotImplementedException();
+            await EnsureAuthService();
 
-            //var account = await JsRuntime.InvokeAsync<TAccount>("AuthenticationService.getUser");
-            //var user = await AccountClaimsPrincipalFactory.CreateUserAsync(account, Options.UserOptions);
+            if (await _tokenCache.TryGet("access_token", out var access_token))
+            {
+                using var userInfoClient = CreateClient(Client.Options);
+                using var request = new UserInfoRequest
+                {
+                    Address = Client.Options.ProviderInformation.UserInfoEndpoint,
+                    Token = access_token.RawData
+                };
 
-            //return user;
+                var userInfoResponse = await userInfoClient.GetUserInfoAsync(request).ConfigureAwait(true);
+
+                if (userInfoResponse.Exception != null)
+                {
+                    throw userInfoResponse.Exception;
+                }
+
+                var account = JsonSerializer.Deserialize<TAccount>(userInfoResponse.Raw);
+
+                await MergeIdTokenClaims(account);
+
+                return await AccountClaimsPrincipalFactory.CreateUserAsync(account, Options.UserOptions);
+            }
+            else
+            {
+                return new ClaimsPrincipal(new ClaimsIdentity());
+            }
         }
 
-        private async ValueTask EnsureAuthService()
+        private async Task MergeIdTokenClaims(TAccount account)
         {
+            if (await _tokenCache.TryGet("id_token", out var idToken))
+            {
+                foreach (var claim in idToken.Claims)
+                {
+                    if (!account.AdditionalProperties.ContainsKey(claim.Type) && !ProtocolClaims.Contains(claim.Type))
+                    {
+                        account.AdditionalProperties.Add(claim.Type, claim.Value);
+                    }
+                }
+            }
         }
 
+        protected async ValueTask EnsureAuthService()
+        {
+            if (!_initialized)
+            {
+                Client = CreateOidcClientFromOptions();
+                _initialized = true;
+            }
+        }
+
+        private static HttpClient CreateClient(OidcClientOptions options)
+        {
+            HttpClient client;
+
+            if (options.BackchannelHandler != null)
+            {
+                client = new HttpClient(options.BackchannelHandler);
+            }
+            else
+            {
+                client = new HttpClient();
+            }
+
+            client.Timeout = options.BackchannelTimeout;
+            return client;
+        }
+
+        private void UpdateUser(Task<ClaimsPrincipal> task)
+        {
+            NotifyAuthenticationStateChanged(UpdateAuthenticationState(task));
+
+            static async Task<AuthenticationState> UpdateAuthenticationState(Task<ClaimsPrincipal> futureUser) => new AuthenticationState(await futureUser);
+        }
     }
 }
