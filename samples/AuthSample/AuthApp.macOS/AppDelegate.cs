@@ -61,5 +61,11 @@ namespace AuthApp.macOS
 
             return menubar;
         }
+
+        [Export("application:openURLs:")]
+        public void OpenUrls(NSApplication application, NSUrl[] urls)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }
