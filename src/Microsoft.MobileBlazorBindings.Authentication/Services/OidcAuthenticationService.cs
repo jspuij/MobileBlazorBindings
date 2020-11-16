@@ -87,8 +87,8 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             await EnsureAuthService();
 
             var internalState = await Client.PrepareLoginAsync();
-            var raw = await StartSecureNavigation(new Uri(internalState.StartUrl), new Uri(internalState.RedirectUri));
-            var loginResult = await Client.ProcessResponseAsync(raw, internalState);
+            var rawQuery = await StartSecureNavigation(new Uri(internalState.StartUrl), new Uri(internalState.RedirectUri));
+            var loginResult = await Client.ProcessResponseAsync(rawQuery, internalState);
 
             if (loginResult.AccessToken != null)
             {
@@ -106,6 +106,10 @@ namespace Microsoft.MobileBlazorBindings.Authentication
 
         protected abstract Task<string> StartSecureNavigation(Uri startUrl, Uri redirectUrl);
 
+        /// <summary>
+        /// Creates a new <see cref="OidcClient"/> given the <see cref="OidcProviderOptions"/>.
+        /// </summary>
+        /// <returns>An <see cref="OidcClient"/> to use.</returns>
 
         protected virtual OidcClient CreateOidcClientFromOptions()
         {
@@ -143,6 +147,7 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         public async virtual Task SignOut()
         {
             await EnsureAuthService();
+
             string idTokenString = null;
             if (await _tokenCache.TryGet("id_token", out var idToken))
             {
@@ -153,9 +158,9 @@ namespace Microsoft.MobileBlazorBindings.Authentication
             {
                 IdTokenHint = idTokenString,
             });
-            var raw = await StartSecureNavigation(new Uri(logoutUrl), new Uri(Client.Options.PostLogoutRedirectUri));
+            var rawQuery = await StartSecureNavigation(new Uri(logoutUrl), new Uri(Client.Options.PostLogoutRedirectUri));
 
-            if (raw == "?")
+            if (string.IsNullOrEmpty(rawQuery))
             {
                 await _tokenCache.Clear();
                 _userLastCheck = DateTimeOffset.FromUnixTimeSeconds(0);

@@ -37,6 +37,12 @@ namespace Microsoft.MobileBlazorBindings.Authentication
         protected override async Task<string> StartSecureNavigation(Uri startUrl, Uri redirectUrl)
         {
             var authenticationResult = await WebAuthenticator.AuthenticateAsync(startUrl, redirectUrl);
+
+            if (!authenticationResult.Properties.Any())
+            {
+                return string.Empty;
+            }
+
             return $"?{string.Join('&',authenticationResult.Properties.Select(x => $"{x.Key}={x.Value}"))}";
         }
     }

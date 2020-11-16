@@ -8,7 +8,9 @@ using Microsoft.MobileBlazorBindings.Authentication;
 using Microsoft.MobileBlazorBindings.Authentication.Internal;
 using System;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Xamarin.Forms;
+using Xamarin.Forms.PlatformConfiguration.iOSSpecific;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -133,7 +135,7 @@ namespace Microsoft.Extensions.DependencyInjection
             where TAccount : RemoteUserAccount
         {
             // todo: add scheme handling based on logic.
-            services.TryAddEnumerable(ServiceDescriptor.Scoped<IPostConfigureOptions<RemoteAuthenticationOptions<OidcProviderOptions>>, DefaultOidcOptionsConfiguration>(sp => new DefaultOidcOptionsConfiguration("app://0.0.0.0/")));
+            services.TryAddEnumerable(ServiceDescriptor.Scoped<IPostConfigureOptions<RemoteAuthenticationOptions<OidcProviderOptions>>, DefaultOidcOptionsConfiguration>(sp => new DefaultOidcOptionsConfiguration(AuthenticationBaseUri)));
 
             return AddRemoteAuthentication<TRemoteAuthenticationState, TAccount, OidcProviderOptions>(services, configure);
         }
@@ -228,5 +230,10 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return new RemoteAuthenticationBuilder<TRemoteAuthenticationState, TAccount>(services);
         }
+
+        /// <summary>
+        /// Base Uri for authentication
+        /// </summary>
+        private static string AuthenticationBaseUri => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "http://localhost:0/" : "app://0.0.0.0/";
     }
 }
